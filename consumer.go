@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-
 	"github.com/segmentio/kafka-go"
 )
 
@@ -18,13 +17,28 @@ func StartKafka() {
 	reader := kafka.NewReader(conf)
 
 	for {
-		m, err := reader.ReadMessage((context.Background()))
+		m, err := reader.FetchMessage((context.Background()))
 
 		if err != nil {
-			fmt.Println("Some error ocurred", err)
+			break
+		}
+
+		fmt.Printf("message at topic/partition/offset %v/%v/%v: %s = %s\n", m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
+		
+		err = reader.CommitMessages(context.Background(), m)
+		
+		if err != nil {
+			fmt.Println("Commiting message: ", string(m.Value))
 			continue
 		}
 
-		fmt.Println("Message is: ", string(m.Value))
 	}
+
+	
+	if err := reader.Close(); err != nil {
+		fmt.Println("failed to close reader:", err)
+	}
+
+	
+	
 }
